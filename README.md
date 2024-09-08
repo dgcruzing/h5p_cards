@@ -1,4 +1,5 @@
 # H5P Flashcard Generator
+# H5P import to H5P.org still not work - needs debugging
 
 This project is a Streamlit-based application that allows users to generate flashcards using AI and export them in various formats, including H5P-compatible JSON for use in H5P Dialog Cards.
 
