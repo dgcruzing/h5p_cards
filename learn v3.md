@@ -15,6 +15,16 @@ This version of the H5P Flashcard Generator is a streamlined Streamlit applicati
 - Removed book-related functionality
 - Streamlined the project to focus solely on flashcard generation
 - Updated file structure for better organization
+- Added error handling for API key configuration
+
+### API Key Configuration
+- Implemented a system to securely set the GROQ_API_KEY
+- Added instructions for users to set the API key as an environment variable
+- Included a check in the application to ensure the API key is properly configured before making API calls
+
+### Error Handling
+- Added try-except blocks to catch and handle API key related errors
+- Implemented user-friendly error messages to guide users in case of API key issues
 
 ### Flashcard Generation
 - Implemented advanced form for detailed flashcard generation options

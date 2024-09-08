@@ -10,50 +10,41 @@ import streamlit as st
 from groq import Groq
 import json
 from io import BytesIO
-from markdown import markdown
-from weasyprint import HTML, CSS
+import zipfile
+import tempfile
+
+# Now import from tools
 from tools import create_h5p_json, create_markdown_file, create_pdf_file, create_flashcards_markdown
 
-# Initialize env variables and session states
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+def check_api_key():
+    if "GROQ_API_KEY" in st.session_state and st.session_state.GROQ_API_KEY:
+        return True
+    
+    api_key = st.text_input("Enter your Groq API Key:", type="password")
+    if api_key:
+        try:
+            # Test the API key
+            client = Groq(api_key=api_key)
+            client.chat.completions.create(
+                messages=[{"role": "user", "content": "Test"}],
+                model="mixtral-8x7b-32768",
+                max_tokens=1
+            )
+            st.session_state.GROQ_API_KEY = api_key
+            return True
+        except Exception as e:
+            st.error(f"Invalid API key: {str(e)}")
+    return False
 
-states = {
-    "api_key": GROQ_API_KEY,
-    "button_disabled": False,
-    "button_text": "Generate Flashcards",
-    "statistics_text": "",
-    "flashcards": [],
-}
-
-if GROQ_API_KEY:
-    states["groq"] = Groq()
-
-def ensure_states(state_dict):
-    for key, default_value in state_dict.items():
-        if key not in st.session_state:
-            st.session_state[key] = default_value
-
-ensure_states(states)
-
-def load_flashcards():
-    if os.path.exists("flashcards.json"):
-        with open("flashcards.json", "r") as f:
-            return json.load(f)
-    return []
-
-def save_flashcards(flashcards):
-    with open("flashcards.json", "w") as f:
-        json.dump(flashcards, f)
-
-def generate_flashcards(api_key, materials, num_cards=10, model="mixtral-8x7b-32768"):
-    client = Groq(api_key=api_key)
+def generate_flashcards(materials, num_cards=10, model="mixtral-8x7b-32768"):
+    client = Groq(api_key=st.session_state.GROQ_API_KEY)
     prompt = f"""Create {num_cards} flashcards based on the following content:
 
 {materials}
 
 Format each flashcard as follows:
-Q: [Question]
-A: [Answer]
+Question: [Question]
+Answer: [Answer]
 
 Separate each flashcard with a blank line."""
 
@@ -68,35 +59,45 @@ Separate each flashcard with a blank line."""
     )
     
     flashcards = []
-    card_texts = response.choices[0].message.content.strip().split('\n\n')
+    content = response.choices[0].message.content.strip()
+    card_texts = content.split('\n\n')
     for card_text in card_texts:
         parts = card_text.split('\n')
         if len(parts) == 2:
-            question = parts[0][3:].strip()  # Remove "Q: " prefix
-            answer = parts[1][3:].strip()    # Remove "A: " prefix
+            question = parts[0].replace("Question: ", "").strip()
+            answer = parts[1].replace("Answer: ", "").strip()
             flashcards.append({"question": question, "answer": answer})
     
     return flashcards, {
         "model_name": model,
-        "input_time": response.usage.prompt_time,
-        "output_time": response.usage.completion_time,
         "input_tokens": response.usage.prompt_tokens,
         "output_tokens": response.usage.completion_tokens,
-        "total_time": response.usage.total_time
+        "total_tokens": response.usage.total_tokens
     }
+
+def load_flashcards():
+    if 'flashcards' in st.session_state:
+        return st.session_state.flashcards
+    elif os.path.exists("flashcards.json"):
+        with open("flashcards.json", "r") as f:
+            return json.load(f)
+    return []
+
+def save_flashcards(flashcards):
+    st.session_state.flashcards = flashcards
+    with open("flashcards.json", "w") as f:
+        json.dump(flashcards, f)
 
 def display_statistics(statistics_text):
     st.text(statistics_text)
 
 def display_flashcards(flashcards):
-    st.header("Your Flashcards")
+    st.header("Generated Flashcards")
     if flashcards:
-        for i, card in enumerate(flashcards):
-            with st.expander(f"Flashcard {i+1}"):
-                st.subheader("Question")
-                st.write(card['question'])
-                st.subheader("Answer")
-                st.write(card['answer'])
+        for i, card in enumerate(flashcards, 1):
+            with st.expander(f"Flashcard {i}"):
+                st.markdown(f"**Question:** {card['question']}")
+                st.markdown(f"**Answer:** {card['answer']}")
     else:
         st.info("No flashcards created yet. Generate some flashcards first!")
 
@@ -118,12 +119,6 @@ def render_advanced_groq_form(on_submit, button_disabled=False, button_text="Gen
 
     with st.form("groqform"):
         st.info("You are using advanced mode with additional features.")
-
-        if not st.session_state.get("api_key"):
-            st.subheader("API Key")
-            groq_input_key = st.text_input("Enter your Groq API Key (gsk_yA...):", "", type="password")
-        else:
-            groq_input_key = None
 
         st.subheader("Flashcard Details")
         topic_text = st.text_input("Flashcard Set Title", help="Enter a title for your flashcard set")
@@ -165,7 +160,6 @@ def render_advanced_groq_form(on_submit, button_disabled=False, button_text="Gen
 
     return (
         submitted,
-        groq_input_key,
         topic_text,
         additional_instructions,
         writing_style,
@@ -176,16 +170,30 @@ def render_advanced_groq_form(on_submit, button_disabled=False, button_text="Gen
         num_cards,
     )
 
+def clear_session_state():
+    for key in list(st.session_state.keys()):
+        if key != 'GROQ_API_KEY':  # Keep the API key
+            del st.session_state[key]
+    if os.path.exists("flashcards.json"):
+        os.remove("flashcards.json")  # Remove the saved flashcards file
+
 def main():
     st.title("H5P Flashcard Generator")
 
-    # Load existing flashcards
+    if not check_api_key():
+        st.stop()
+
+    # Add a refresh button
+    if st.button("Refresh Page"):
+        clear_session_state()
+        st.experimental_rerun()
+
+    # Load existing flashcards or initialize an empty list
     if 'flashcards' not in st.session_state:
-        st.session_state.flashcards = load_flashcards()
+        st.session_state.flashcards = []
 
     (
         submitted,
-        groq_input_key,
         topic_text,
         additional_instructions,
         writing_style,
@@ -196,8 +204,8 @@ def main():
         num_cards
     ) = render_advanced_groq_form(
         on_submit=lambda: setattr(st.session_state, 'button_disabled', True),
-        button_disabled=st.session_state.button_disabled,
-        button_text=st.session_state.button_text,
+        button_disabled=st.session_state.get('button_disabled', False),
+        button_text=st.session_state.get('button_text', "Generate"),
     )
 
     if submitted:
@@ -219,39 +227,43 @@ def main():
 
 def generate_flashcard_set(topic_text, additional_instructions, writing_style, complexity_level,
                            seed_content, uploaded_file, section_agent_model, num_cards):
-    st.session_state.statistics_text = "Generating flashcards..."
-    display_statistics(st.session_state.statistics_text)
+    with st.spinner("Generating flashcards..."):
+        total_seed_content = seed_content or ""
+        if uploaded_file:
+            total_seed_content += uploaded_file.read().decode("utf-8")
 
-    total_seed_content = seed_content or ""
-    if uploaded_file:
-        total_seed_content += uploaded_file.read().decode("utf-8")
+        materials = f"""
+        Topic: {topic_text}
+        Writing Style: {writing_style}
+        Complexity Level: {complexity_level}
+        Additional Instructions: {additional_instructions}
+        Seed Content: {total_seed_content}
+        """
 
-    materials = f"""
-    Topic: {topic_text}
-    Writing Style: {writing_style}
-    Complexity Level: {complexity_level}
-    Additional Instructions: {additional_instructions}
-    Seed Content: {total_seed_content}
-    """
+        flashcards, stats = generate_flashcards(
+            materials,
+            num_cards,
+            section_agent_model
+        )
 
-    flashcards, stats = generate_flashcards(
-        st.session_state.api_key,
-        materials,
-        num_cards,
-        section_agent_model
-    )
+        if flashcards:
+            # Replace existing flashcards with new ones
+            st.session_state.flashcards = flashcards
+            save_flashcards(flashcards)
+            st.success(f"Generated {len(flashcards)} new flashcards")
+            display_flashcards(flashcards)
+        else:
+            st.warning("No flashcards were generated. Please try again with different inputs.")
 
-    st.session_state.flashcards.extend(flashcards)
-    save_flashcards(st.session_state.flashcards)
-
-    st.success(f"Generated {len(flashcards)} flashcards")
-    st.markdown("## Generation Statistics")
-    st.markdown(str(stats))
-
-    display_flashcards(flashcards)
+        st.markdown("## Generation Statistics")
+        st.markdown(f"- Model: {stats['model_name']}")
+        st.markdown(f"- Total tokens: {stats['total_tokens']}")
 
 def export_flashcards():
     if st.session_state.flashcards:
+        st.write("Debug: Flashcards being exported:")
+        st.json(st.session_state.flashcards)
+
         flashcards_json = json.dumps(st.session_state.flashcards, indent=2)
         st.download_button(
             label="Download JSON",
@@ -269,29 +281,83 @@ def export_flashcards():
             mime="text/markdown"
         )
         
-        pdf_file = create_pdf_file(markdown_content)
-        st.download_button(
-            label="Download Flashcards as PDF",
-            data=pdf_file,
-            file_name="flashcards.pdf",
-            mime="application/pdf"
-        )
+        try:
+            pdf_file = create_pdf_file(markdown_content)
+            st.download_button(
+                label="Download Flashcards as PDF",
+                data=pdf_file,
+                file_name="flashcards.pdf",
+                mime="application/pdf"
+            )
+        except Exception as e:
+            st.error(f"Error creating PDF: {str(e)}")
 
         # H5P export option
-        h5p_json = create_h5p_json(st.session_state.flashcards, "Flashcard Set")
-        st.download_button(
-            label="Download H5P content.json",
-            data=h5p_json,
-            file_name="content.json",
-            mime="application/json"
-        )
+        h5p_content = create_h5p_json(st.session_state.flashcards, "Flashcard Set")
+        
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            # Create content folder
+            content_dir = os.path.join(tmpdirname, "content")
+            os.makedirs(content_dir)
+            
+            # Create content.json in the content folder
+            with open(os.path.join(content_dir, "content.json"), "w") as f:
+                f.write(h5p_content)
 
-        st.info("To use the H5P content.json file:")
+            # Create h5p.json in the root of the package
+            h5p_json = {
+                "title": "Flashcard Set",
+                "language": "en",
+                "mainLibrary": "H5P.DialogCards",
+                "embedTypes": ["div"],
+                "license": "U",
+                "preloadedDependencies": [
+                    {"machineName": "H5P.DialogCards", "majorVersion": "1", "minorVersion": "9"},
+                    {"machineName": "H5P.JoubelUI", "majorVersion": "1", "minorVersion": "3"},
+                    {"machineName": "H5P.FontAwesome", "majorVersion": "4", "minorVersion": "5"}
+                ]
+            }
+            with open(os.path.join(tmpdirname, "h5p.json"), "w") as f:
+                json.dump(h5p_json, f, indent=2)
+
+            # Create dummy library folders
+            libraries = [
+                "H5P.DialogCards-1.9",
+                "H5P.JoubelUI-1.3",
+                "H5P.FontAwesome-4.5"
+            ]
+            for lib in libraries:
+                os.makedirs(os.path.join(tmpdirname, lib))
+
+            # Create ZIP file
+            zip_buffer = BytesIO()
+            with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+                for root, dirs, files in os.walk(tmpdirname):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        archive_path = os.path.relpath(file_path, tmpdirname)
+                        zip_file.write(file_path, archive_path)
+                    for dir in dirs:
+                        dir_path = os.path.join(root, dir)
+                        archive_path = os.path.relpath(dir_path, tmpdirname) + '/'
+                        zinfo = zipfile.ZipInfo(archive_path)
+                        zip_file.writestr(zinfo, '')
+
+            # Offer the ZIP file for download
+            st.download_button(
+                label="Download H5P Package",
+                data=zip_buffer.getvalue(),
+                file_name="flashcards.h5p",
+                mime="application/zip"
+            )
+
+        st.success("H5P package created successfully.")
+        st.info("To use the H5P package:")
         st.markdown("""
-        1. Create a new H5P Dialog Cards content or edit an existing one.
-        2. In the H5P editor, click on the "Import" button.
-        3. Select the downloaded content.json file.
-        4. The flashcards should now be imported into your H5P Dialog Cards content.
+        1. Download the H5P package.
+        2. Go to your H5P-enabled platform (e.g., Moodle, WordPress with H5P plugin).
+        3. Upload the downloaded .h5p file as new H5P content.
+        4. The flashcards should now be available as H5P Dialog Cards content.
         """)
     else:
         st.info("No flashcards to export. Generate some flashcards first!")

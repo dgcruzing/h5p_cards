@@ -1,0 +1,90 @@
+{
+  "mode": "normal",
+  "description": "<p>These cards are designed to help you learn and memorize key concepts about Flashcard Set. Try to answer from memory before flipping the cards.</p>",
+  "dialogs": [
+    {
+      "tips": [],
+      "text": "<p style=\"text-align: center;\">You stumble upon a hidden underground tunnel while exploring the forest. What do you think might be living in there?</p>",
+      "answer": "<p style=\"text-align: center;\">Scan the QR code to learn about the fascinating world of subterranean creatures! (Explore)</p>"
+    },
+    {
+      "tips": [],
+      "text": "<p style=\"text-align: center;\">You're a bear trying to find food in the forest. What do you need to do to get the most energy from your meal?</p>",
+      "answer": "<p style=\"text-align: center;\">As a bear, you need to eat plants and animals that are high in energy. Think about the food chain and what bears eat. Scan the QR code to learn more about bear diets!</p>"
+    },
+    {
+      "tips": [],
+      "text": "<p style=\"text-align: center;\">You're a scientist studying the Amazon Rainforest. You've noticed a new species of frog. What do you think its role in the ecosystem might be?</p>",
+      "answer": "<p style=\"text-align: center;\">Frog might be a primary consumer, eating insects, or secondary if it eats smaller frogs. Scan the QR code to see how frogs fit into the food web.</p>"
+    },
+    {
+      "tips": [],
+      "text": "<p style=\"text-align: center;\">The local park is considering installing a new pond. What type of plants and animals might you expect to find in the pond?</p>",
+      "answer": "<p style=\"text-align: center;\">As an ecosystem engineer, you need to think about the relationships between plants and animals. Scan the QR code to learn about aquatic ecosystems!</p>"
+    },
+    {
+      "tips": [],
+      "text": "<p style=\"text-align: center;\">You're a fish swimming in a coral reef. What do you need to do to stay safe from predators?</p>",
+      "answer": "<p style=\"text-align: center;\">As a fish, you need to blend in with your surroundings and be cautious of bigger fish. Think about the symbiotic relationships in the reef and how they might help you. Scan the QR code to learn more about coral reefs!</p>"
+    },
+    {
+      "tips": [],
+      "text": "<p style=\"text-align: center;\">The local park is experiencing a severe drought. How do you think this will affect the ecosystem?</p>",
+      "answer": "<p style=\"text-align: center;\">As an ecosystem analyst, you need to think about the flow of energy and matter in the ecosystem. Scan the QR code to learn about the impact of climate change on ecosystems!</p>"
+    },
+    {
+      "tips": [],
+      "text": "<p style=\"text-align: center;\">You're a scientist studying the food chain in a forest. What do you think would happen if the primary producer (plants) were to disappear?</p>",
+      "answer": "<p style=\"text-align: center;\">As a food chain expert, you need to think about the energy flow and how each level depends on the next. Scan the QR code to learn about the importance of primary producers!</p>"
+    },
+    {
+      "tips": [],
+      "text": "<p style=\"text-align: center;\">You're an ecosystem manager tasked with reintroducing a species to a degraded habitat. What do you think would be the most important factor to consider?</p>",
+      "answer": "<p style=\"text-align: center;\">As an ecosystem manager, you need to think about the relationships between species and their environment. Scan the QR code to learn about the importance of habitat restoration!</p>"
+    },
+    {
+      "tips": [],
+      "text": "<p style=\"text-align: center;\">You're a student reflecting on what you've learned about ecosystems. What do you think is the most important concept to remember?</p>",
+      "answer": "<p style=\"text-align: center;\">As an ecosystem expert, you need to think about the big picture and how each component fits together. Scan the QR code to review key concepts!</p>"
+    }
+  ],
+  "behaviour": {
+    "enableRetry": true,
+    "disableBackwardsNavigation": false,
+    "scaleTextNotCard": false,
+    "randomCards": true,
+    "maxProficiency": 5,
+    "quickProgression": false
+  },
+  "answer": "Turn",
+  "next": "Next",
+  "prev": "Previous",
+  "retry": "Try again",
+  "correctAnswer": "I got it right!",
+  "incorrectAnswer": "I got it wrong",
+  "round": "Round @round",
+  "cardsLeft": "Cards left: @number",
+  "nextRound": "Proceed to round @round",
+  "startOver": "Start over",
+  "showSummary": "Next",
+  "summary": "Summary",
+  "summaryCardsRight": "Cards you got right:",
+  "summaryCardsWrong": "Cards you got wrong:",
+  "summaryCardsNotShown": "Cards in pool not shown:",
+  "summaryOverallScore": "Overall Score",
+  "summaryCardsCompleted": "Cards you have completed learning:",
+  "summaryCompletedRounds": "Completed rounds:",
+  "summaryAllDone": "Well done! You got all @cards cards correct @max times in a row!",
+  "progressText": "Card @card of @total",
+  "cardFrontLabel": "Card front",
+  "cardBackLabel": "Card back",
+  "tipButtonLabel": "Show tip",
+  "audioNotSupported": "Your browser does not support this audio",
+  "confirmStartingOver": {
+    "header": "Start over?",
+    "body": "All progress will be lost. Are you sure you want to start over?",
+    "cancelLabel": "Cancel",
+    "confirmLabel": "Start over"
+  },
+  "title": "<p>Flashcard Set</p>\n"
+}
