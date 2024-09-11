@@ -1,5 +1,14 @@
 # H5P Flashcard Generator
 # H5P import to H5P.org still not working - needs debugging
+# H5P Packager Development Recap
+
+[View this document on GitHub](https://github.com/dgcruzing/h5p_cards/blob/main/testing/h5p-packager-recap.md)
+
+## Project Overview
+
+We developed a modular H5P content packager that allows for easy packaging of different H5P content types, focusing initially on Drag the Words and a general folder structure packager.
+
+
 
 This project is a Streamlit-based application that allows users to generate flashcards using AI and export them in various formats, including H5P-compatible JSON for use in H5P Dialog Cards.
 
